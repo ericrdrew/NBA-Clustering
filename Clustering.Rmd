@@ -1,0 +1,123 @@
+---
+title: "NBAClustering"
+author: "Eric Drew"
+date: "2022-10-12"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(datasets)
+library(arules)
+library(arulesViz)
+library(ggplot2)
+library(dplyr)
+library(rpart)
+library(rpart.plot)
+library(TH.data)
+library(ISLR2)
+library(lattice)
+library(stats)
+library(rattle)
+library(RColorBrewer)
+#library(caret)
+library(ROCR)
+library(cluster)  
+library(factoextra) 
+library(gridExtra)
+library(NbClust)
+library(dendextend)
+library(class)
+library(ClustOfVar)
+library(MASS)
+library(kableExtra)
+library(partykit)
+library(dbscan)
+```
+
+```{r data}
+#https://www.basketball-reference.com/leagues/NBA_2022_per_game.html
+#per game Stats Data
+pergame <- read.csv("C:\\Users\\ericd\\OneDrive - North Carolina State University\\Desktop\\NBA Project\\perGameStats.csv")
+
+#Remove the "total" observation(for now)
+pergame = pergame[order(pergame[,'Player'],-pergame[,'G']),]
+pergame = pergame[!duplicated(pergame$Player),]
+
+
+pergame <- pergame[,-c(2,3,4)]
+
+```
+
+
+```{r clean}
+#missing values check
+sum(is.na(pergame))
+
+#remove rows with missing values
+pergame <- na.omit(pergame)
+
+#set player name to the row names and drop column
+row.names(pergame) <- pergame$Player
+pergame <- pergame[,-1]
+
+pergame <- as.data.frame(pergame)
+
+
+#filter to players who play more than 15mpg
+pergame <- pergame %>% filter(pergame$PTS >= 13)
+
+
+labelvec <- c('LeBron James','Joel Embiid','Kevin Durant','Luka Dončić','Rudy Gobert','Bam Adebayo',
+                 'Anthony Davis', 'Montrezl Harrell','Aaron Gordon','Josh Hart','Reggie Jackson',
+              'LaMelo Ball','Stephen Curry','Carmelo Anthony','Kyle Kuzma', 'Deandre Ayton', 'James Harden',
+              'Jimmy Butler','Bradley Beal','Jalen Green')
+```
+
+```{r cluster}
+scaleData <- scale(pergame)
+
+clus2=kmeans(scaleData,centers=3,nstart = 100000)
+clus2
+
+fviz_nbclust(scaleData, kmeans, method = "wss",k.max = 9)
+fviz_nbclust(scaleData, kmeans, method = "silhouette",k.max = 9)
+
+fviz_cluster(clus2,data = scaleData,geom=c('text','point'), pointsize=.8,labelsize = 12,label.select=labelvec,
+             main='Cluster Plot of NBA Players(min. 13PPG)')
+
+
+#bind the clusters onto each players observation
+profile.kmeans=cbind(pergame,clus2$cluster)
+
+#create the summary statistics for the important per game stats
+all.k=profile.kmeans %>% group_by(clus2$cluster) %>%
+   summarise('Points/Game'=round(mean(PTS),2),'Rebs/Game'=round(mean(TRB),2),'AST/Game'=round(mean(AST),2),
+             'Blocks/Game'=round(mean(BLK),2))
+
+
+#rename clusters to what they are categorized as
+all.k$`clus2$cluster` <- as.character(all.k$`clus2$cluster`)
+all.k[1,1] = 'Role Players'
+all.k[2,1] = 'Stars'
+all.k[3,1] = 'Big Men'
+
+names(all.k)[names(all.k) == 'clus2$cluster'] <- 'Player Category'
+
+#print table with ordering the stars first
+all.k[c(2,3,1),]
+
+#league averages for the stats to be highlighted(stars:points. big men:blocks/rebounds)
+mean(pergame$PTS) #18.8
+mean(pergame$BLK) #0.6
+mean(pergame$TRB) #5.9
+
+NbClust(scaleData,method="kmeans",min.nc=2,max.nc = 4)
+```
+
+
+
+
+
+
+
