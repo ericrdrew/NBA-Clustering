@@ -38,15 +38,15 @@ library(dbscan)
 ```{r data}
 #https://www.basketball-reference.com/leagues/NBA_2022_per_game.html
 #per game Stats Data
-#pergame <- read.csv("C:\\Users\\ericd\\OneDrive - North Carolina State University\\Desktop\\NBA Project\\perGameStats.csv")
+pergame <- read.csv("C:\\Users\\ericd\\OneDrive - North Carolina State University\\Desktop\\PersonalProjects\\NBA-Clustering\\perGameStats.csv")
 
-pergame <- read.csv("C:\\Users\\ericd\\OneDrive - North Carolina State University\\Desktop\\NBA-AllStar-Predictions\\Data\\season22-23.csv")
-
-#Remove the total" observation(for now)
+#Remove the "total" observation(for now)
 pergame = pergame[order(pergame[,'Player'],-pergame[,'G']),]
 pergame = pergame[!duplicated(pergame$Player),]
 
-pergame <- pergame[,-c(1,2,3,4)]
+
+pergame <- pergame[,-c(2,3,4)]
+
 ```
 
 
@@ -64,28 +64,27 @@ pergame <- pergame[,-1]
 pergame <- as.data.frame(pergame)
 
 
-#filter to players who play more than 10MPG
-#pergame <- pergame %>% filter(pergame$MP >= 15)
+#filter to players who play more than 15mpg
+pergame <- pergame %>% filter(pergame$PTS >= 13)
 
 
 labelvec <- c('LeBron James','Joel Embiid','Kevin Durant','Luka Dončić','Rudy Gobert','Bam Adebayo',
                  'Anthony Davis', 'Montrezl Harrell','Aaron Gordon','Josh Hart','Reggie Jackson',
-              'LaMelo Ball','Stephen Curry','Kyle Kuzma', 'Deandre Ayton', 'James Harden',
+              'LaMelo Ball','Stephen Curry','Carmelo Anthony','Kyle Kuzma', 'Deandre Ayton', 'James Harden',
               'Jimmy Butler','Bradley Beal','Jalen Green')
 ```
 
 ```{r cluster}
 scaleData <- scale(pergame)
 
-clus2=kmeans(scaleData,centers=3,nstart = 1000)
+clus2=kmeans(scaleData,centers=3,nstart = 10000)
 clus2
 
 fviz_nbclust(scaleData, kmeans, method = "wss",k.max = 9)
 fviz_nbclust(scaleData, kmeans, method = "silhouette",k.max = 9)
 
-fviz_cluster(clus2,data = scaleData,geom=c('text','point'), pointsize=.8,labelsize = 20,
-             label.select=labelvec,
-             main='Cluster Plot of NBA Players(min. 15 MPG)')
+fviz_cluster(clus2,data = scaleData,geom=c('text','point'), pointsize=.8,labelsize = 12,label.select=labelvec,
+             main='Cluster Plot of NBA Players(min. 13PPG)')
 
 
 #bind the clusters onto each players observation
@@ -114,6 +113,11 @@ mean(pergame$BLK) #0.6
 mean(pergame$TRB) #5.9
 
 NbClust(scaleData,method="kmeans",min.nc=2,max.nc = 4)
-
-
 ```
+
+
+
+
+
+
+
